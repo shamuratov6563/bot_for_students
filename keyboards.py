@@ -15,20 +15,20 @@ def get_ikb() -> InlineKeyboardMarkup:
 def get_admin_kb() -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
     kb.add(KeyboardButton("Bo\'limlar ro\'yhati"), KeyboardButton("Darslar ro\'yhati"))
-    kb.add(KeyboardButton('Yangi dars qo\'shish'), KeyboardButton('Yangi bo\'lim qo\'shish'))
+    kb.add(KeyboardButton('Yangi bo\'lim qo\'shish'), KeyboardButton('Yangi dars qo\'shish'))
     return kb
 
 
 def get_keyboards() -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
-    kb.add(KeyboardButton('Darslar ro\'yxati'))
+    kb.add(KeyboardButton('Darslar ro\'yhati'))
     kb.add(KeyboardButton('Intervyu savollari'))
     kb.add(KeyboardButton('Admin paneli'))
 
     return kb
 
 
-def get_all_section() -> InlineKeyboardMarkup:
+def get_all_section_ikb() -> InlineKeyboardMarkup:
     sections = get_all_sections()
     ikb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=section[1], callback_data=f's_{section[0]}')]
@@ -46,6 +46,15 @@ def get_sections_for_admin() -> InlineKeyboardMarkup:
     return ikb
 
 
+def get_sections_for_new_lesson_ikb() -> InlineKeyboardMarkup:
+    sections = get_all_sections()
+    ikb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=section[1], callback_data=f'nl_s_{section[0]}')]
+        for section in sections
+    ])
+    return ikb
+
+
 def get_lessons_by_sec(sec) -> InlineKeyboardMarkup:
     lessons = get_all_lessons_by_sec(sec)
     ikb = InlineKeyboardMarkup(inline_keyboard=[
@@ -55,10 +64,20 @@ def get_lessons_by_sec(sec) -> InlineKeyboardMarkup:
     return ikb
 
 
-def get_actions_kb(section_id) -> InlineKeyboardMarkup:
+def get_actions_sections_kb(section_id) -> InlineKeyboardMarkup:
     ikb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text='Darsni tahrirlash', callback_data=f'e_{section_id}')],
-        [InlineKeyboardButton(text='Darsni o\'chirish', callback_data=f'd_{section_id}')],
+        [InlineKeyboardButton(text="Bo'limni tahrirlash", callback_data=f"admin_se_{section_id}")],
+        [InlineKeyboardButton(text="Bo'limni o'chirish", callback_data=f"admin_sd_{section_id}")],
+    ])
+
+    return ikb
+
+
+# actions for lessons
+def get_actions_lesson_kb(lesson_id) -> InlineKeyboardMarkup:
+    ikb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text='Darsni tahrirlash', callback_data=f'e_{lesson_id}')],
+        [InlineKeyboardButton(text='Darsni o\'chirish', callback_data=f'd_{lesson_id}')],
         [InlineKeyboardButton(text='Asosiy menyu', callback_data='b_1')],
     ])
 
@@ -68,7 +87,16 @@ def get_actions_kb(section_id) -> InlineKeyboardMarkup:
 def get_approval(section_id) -> InlineKeyboardMarkup:
     ikb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Ha", callback_data=f"ad_{section_id}")],
-        [InlineKeyboardButton(text="Yo'q", callback_data=f"bd_{section_id}")],
+        [InlineKeyboardButton(text="Yo'q", callback_data=f"a_s_{section_id}")],
+    ])
+
+    return ikb
+
+
+def get_approval_lesson_ikb(lesson_id) -> InlineKeyboardMarkup:
+    ikb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Ha", callback_data=f"adl_{lesson_id}")],
+        [InlineKeyboardButton(text="Yo'q", callback_data=f"l_{lesson_id}")],
     ])
 
     return ikb

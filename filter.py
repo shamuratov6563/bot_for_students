@@ -1,8 +1,9 @@
 from aiogram.dispatcher.filters import Filter
 from aiogram import types
-
-ADMIN = 385419373
-
+try:
+    from local_settings import ADMIN
+except Exception as e:
+    print(e)
 admins = [ADMIN, ]
 
 
