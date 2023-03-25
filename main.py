@@ -1,25 +1,29 @@
 from aiogram import Bot, Dispatcher, executor, types
 from keyboards import get_keyboards, get_all_section_ikb, \
     get_admin_kb, get_lessons_by_sec, get_actions_lesson_kb, get_approval, get_sections_for_admin, \
-    get_actions_sections_kb, get_approval_lesson_ikb, get_sections_for_new_lesson_ikb
+    get_actions_sections_kb, get_approval_lesson_ikb, get_sections_for_new_lesson_ikb, get_edit_lesson_ikb, \
+    get_sections_ikb
 from aiogram.dispatcher.filters import Text
-from sqlite import db_start, get_lesson, create_section, get_section, get_all_sections, get_all_sections_name, \
-    delete_section, get_lesson_name, get_all_lessons_name, create_lesson
+from sqlite import db_start, get_lesson, create_section, get_section, get_all_sections_name, \
+    delete_section, get_lesson_name, get_all_lessons_name, create_lesson, delete_lesson, \
+    edit_lesson_video_sql, edit_lession_name_sql, \
+    edit_lesson_handout_sql, edit_lesson_homework_sql, edit_lesson_section_id_sql
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from filter import IsAdmin, admins
-
 
 try:
     from local_settings import TOKEN
 except Exception as e:
     print(e)
 
-
 bot = Bot(token=TOKEN)
 
 dp = Dispatcher(bot, storage=MemoryStorage())
+
+# id for recognizing lesson
+lesson_id = None
 
 
 class SectionStatesGroup(StatesGroup):
@@ -34,9 +38,26 @@ class LessonStatesGroup(StatesGroup):
     section_id = State()
 
 
+class LessonEditStatesGroup(StatesGroup):
+    name = State()
+    video = State()
+    handout = State()
+    homework = State()
+    section_id = State()
+
+
 async def on_startup(_):
     await db_start()
     print("Db successfully started")
+
+
+# @dp.message_handler(commands=['Cancel'], state='*')
+# async def cmd_cancel(message: types.Message, state: FSMContext) -> None:
+#     current_state = await state.get_state()
+#     if current_state is None:
+#         return
+#     await state.finish()
+#     await message.reply('Canceled')
 
 
 @dp.message_handler(commands=['start'])
@@ -238,26 +259,119 @@ async def adding_new_lesson_handout(message: types.Message, state: FSMContext):
     await LessonStatesGroup.homework.set()
 
 
+# Last step to add new lesson
 @dp.message_handler(IsAdmin(), state=LessonStatesGroup.homework)
 async def adding_new_lesson_homework(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['homework'] = message.text
     await create_lesson(data['name'], data['video'], data['handout'], data['homework'], data['section_id'])
     await bot.send_message(chat_id=message.from_user.id,
-                           text="Darslik muvaffaqiyatli qo'shildi",)
+                           text="Darslik muvaffaqiyatli qo'shildi", )
     await state.finish()
 
 
 # Delete Lesson
 @dp.callback_query_handler(lambda c: c.data.startswith('d_'), IsAdmin())
 async def process_delete_lesson_callback(callback_query: types.CallbackQuery):
-    lesson_name = get_lesson_name(callback_query.data[2:])
+    lesson_name = await get_lesson_name(callback_query.data[2:])
     await bot.answer_callback_query(callback_query.id)
     await bot.send_message(chat_id=callback_query.from_user.id,
                            text=f"{lesson_name} darsini o'chirishni tasdiqlaysizmi?",
                            reply_markup=get_approval_lesson_ikb(lesson_id=callback_query.data[2:]))
 
     await callback_query.message.delete()
+
+
+# Lesson deleted
+@dp.callback_query_handler(lambda c: c.data.startswith('adl_'), IsAdmin())
+async def process_delete_lesson_callback(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+    await delete_lesson(callback_query.data[4:])
+    await bot.send_message(chat_id=callback_query.from_user.id,
+                           text=f"Dars o'chirildi",
+                           reply_markup=get_admin_kb())
+
+    await callback_query.message.delete()
+
+
+# Modify Lesson Name
+@dp.callback_query_handler(lambda c: c.data.startswith('e_'), IsAdmin())
+async def process_edit_lesson_callback(callback_query: types.CallbackQuery):
+    lesson_name = await get_lesson_name(callback_query.data[2:])
+    await bot.answer_callback_query(callback_query.id)
+    await bot.send_message(chat_id=callback_query.from_user.id,
+                           text=f"{lesson_name} darsining o'zgartirmoqchi bo'lgan qismini tanlang:",
+                           reply_markup=get_edit_lesson_ikb(callback_query.data[2:]))
+
+
+@dp.callback_query_handler(lambda c: c.data.startswith('lesson_edit_'), IsAdmin())
+async def process_edit_lesson_callback(callback_query: types.CallbackQuery):
+    global lesson_id
+    lesson_id = callback_query.data[11:]
+    if 'name' in callback_query.data:
+        await bot.answer_callback_query(callback_query.id)
+        await bot.send_message(chat_id=callback_query.from_user.id,
+                               text=f"Dars nomini kiriting:")
+        await LessonEditStatesGroup.name.set()
+    elif 'video' in callback_query.data:
+        await bot.answer_callback_query(callback_query.id)
+        await bot.send_message(chat_id=callback_query.from_user.id,
+                               text=f"Dars uchun video linkini kiriting:")
+        await LessonEditStatesGroup.video.set()
+    elif 'slide' in callback_query.data:
+        await bot.answer_callback_query(callback_query.id)
+        await bot.send_message(chat_id=callback_query.from_user.id,
+                               text=f"Dars uchun slidning linkini kiriting:")
+        await LessonEditStatesGroup.handout.set()
+    elif 'homework' in callback_query.data:
+        await bot.answer_callback_query(callback_query.id)
+        await bot.send_message(chat_id=callback_query.from_user.id,
+                               text=f"Dars uchun darslikning uyga vazifasini linkini kiriting:")
+        await LessonEditStatesGroup.homework.set()
+    await callback_query.message.delete()
+
+
+@dp.message_handler(IsAdmin(), state=LessonEditStatesGroup.name)
+async def edit_lesson_name(message: types.Message, state: FSMContext):
+    global lesson_id
+    lesson_id = lesson_id[6:]
+    async with state.proxy() as data:
+        data['name'] = message.text
+    await edit_lession_name_sql(data['name'], lesson_id)
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Dars nomi muvaffaqiyatli o'zgartirildi")
+    await state.finish()
+
+
+@dp.message_handler(IsAdmin(), state=LessonEditStatesGroup.video)
+async def edit_lesson_video(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['video'] = message.text
+    await edit_lesson_video_sql(data['video'], lesson_id[7:])
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Dars uchun video linki muvaffaqiyatli o'zgartirildi")
+    await state.finish()
+
+
+@dp.message_handler(IsAdmin(), state=LessonEditStatesGroup.handout)
+async def edit_lesson_handout(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['handout'] = message.text
+    await edit_lesson_handout_sql(data['handout'], lesson_id[7:])
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Dars uchun slidning linki muvaffaqiyatli o'zgartirildi")
+    await state.finish()
+
+
+@dp.message_handler(IsAdmin(), state=LessonEditStatesGroup.homework)
+async def edit_lesson_homework(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['homework'] = message.text
+    await edit_lesson_homework_sql(data['homework'], lesson_id[10:])
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Dars uchun darslikning uyga vazifasining linki muvaffaqiyatli o'zgartirildi")
+    await state.finish()
+
 
 if __name__ == '__main__':
     dp.bind_filter(IsAdmin)
