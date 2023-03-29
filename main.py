@@ -222,9 +222,7 @@ async def process_adding_new_lesson_section_callback(callback_query: types.Callb
 async def adding_new_lesson_name(message: types.Message, state: FSMContext):
     lesson_name = get_all_lessons_name()
     lessons = []
-    if lesson_name is None:
-        lessons = []
-    else:
+    if lesson_name is not None:
         for lesson in lesson_name:
             lessons.append(lesson[0])
     if message.text not in lessons:
@@ -266,7 +264,7 @@ async def adding_new_lesson_homework(message: types.Message, state: FSMContext):
         data['homework'] = message.text
     await create_lesson(data['name'], data['video'], data['handout'], data['homework'], data['section_id'])
     await bot.send_message(chat_id=message.from_user.id,
-                           text="Darslik muvaffaqiyatli qo'shildi", )
+                           text="Darslik muvaffaqiyatli qo'shildi")
     await state.finish()
 
 

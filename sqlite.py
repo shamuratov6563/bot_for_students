@@ -27,7 +27,7 @@ async def create_section(name):
 
 
 async def create_lesson(*args):
-    lesson = cur.execute("SELECT 1 FROM lesson WHERE name = '{key}'".format(key=str(args[0]))).fetchone()
+    lesson = cur.execute('SELECT 1 FROM lesson WHERE name = "{key}"'.format(key=str(args[0]))).fetchone()
     if not lesson:
         cur.execute("INSERT INTO lesson VALUES(?, ?, ?, ?, ?, ?)",
                     (str(uuid4()), args[0], args[1], args[2], args[3], args[4]))
@@ -76,35 +76,34 @@ async def get_lesson_name(lesson_id):
 
 
 async def edit_lesson_section_id_sql(lesson_id, section_id):
-    cur.execute("UPDATE lesson SET section_id = '{}' WHERE lesson_id == '{}'".format(section_id, lesson_id))
+    cur.execute('UPDATE lesson SET section_id = "{}" WHERE lesson_id == "{}"'.format(section_id, lesson_id))
     db.commit()
 
 
 async def edit_lession_name_sql(name, lesson_id):
-    cur.execute("UPDATE lesson SET name = '{}' WHERE lesson_id == '{}'".format(name, lesson_id))
-    lesson = cur.execute("SELECT 1 FROM lesson WHERE lesson_id = '{key}'".format(key=lesson_id)).fetchone()
+    cur.execute('UPDATE lesson SET name = "{}" WHERE lesson_id == "{}"'.format(name, lesson_id))
     db.commit()
 
 
 async def edit_lesson_video_sql(video, lesson_id):
-    cur.execute("UPDATE lesson SET video = '{}' WHERE lesson_id == '{}'".format(video, lesson_id))
+    cur.execute('UPDATE lesson SET video = "{}" WHERE lesson_id == "{}"'.format(video, lesson_id))
     db.commit()
 
 
 async def edit_lesson_handout_sql(handout, lesson_id):
-    cur.execute("UPDATE lesson SET handout = '{}' WHERE lesson_id == '{}'".format(handout, lesson_id))
+    cur.execute('UPDATE lesson SET handout = "{}" WHERE lesson_id == "{}"'.format(handout, lesson_id))
     db.commit()
 
 
 async def edit_lesson_homework_sql(homework, lesson_id):
-    cur.execute("UPDATE lesson SET homework = '{}' WHERE lesson_id == '{}'".format(homework, lesson_id))
+    cur.execute('UPDATE lesson SET homework = "{}" WHERE lesson_id == "{}"'.format(homework, lesson_id))
     db.commit()
 
 
 def edit_section(name, section_id):
     section = cur.execute("SELECT 1 FROM section WHERE name = '{key}'".format(key=name)).fetchone()
     if section:
-        cur.execute("UPDATE section SET name = '{}' WHERE section_id == '{}'".format(name, section_id))
+        cur.execute('UPDATE section SET name = "{}" WHERE section_id == "{}"'.format(name, section_id))
         db.commit()
 
 
