@@ -17,8 +17,9 @@ try:
     from local_settings import TOKEN
 except Exception as e:
     print(e)
+PROXY_URL = "http://proxy.server:3128"
 
-bot = Bot(token=TOKEN)
+bot = Bot(token=TOKEN, proxy=PROXY_URL)
 
 dp = Dispatcher(bot, storage=MemoryStorage())
 
